@@ -49,16 +49,7 @@ The actual code can be find [here](https://github.com/qfl1ck32/IntroductionToRob
 
 Little explanation for each step:
 
-1. Declaring the pins that we're going to use. (note: we will usually store data in an `array[3]`, representing `{ R, G, B }` related values, i.e. `potPins[1] = the pin for the potentiometer that will control the intensity for green`).
-
-```C++
-const int potPins[numberOfColors] = { A0, A1, A2 };
-
-const int ledPins[numberOfColors] = { 3, 5, 6 };
-```
-
-
-2. Declaring the constants that we'll be using throughout the algorithm:
+1. Declaring the constants that we'll be using throughout the algorithm:
 
 ```C++
 const int numberOfColors = 3;
@@ -66,6 +57,15 @@ const int numberOfColors = 3;
 const int maxAnalogWriteValue = 255;
 
 const int maxAnalogReadValue = 1023;
+```
+
+
+2. Declaring the pins that we're going to use. (note: we will usually store data in an `array[3]`, representing `{ R, G, B }` related values, i.e. `potPins[1] = the pin for the potentiometer that will control the intensity for green`).
+
+```C++
+const int potPins[numberOfColors] = { A0, A1, A2 };
+
+const int ledPins[numberOfColors] = { 3, 5, 6 };
 ```
 
 
