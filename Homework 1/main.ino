@@ -11,14 +11,6 @@ const int maxAnalogWriteValue = 255;
 
 const int maxAnalogReadValue = 1023;
 
-void setup() {
-  for (unsigned int i = 0; i < numberOfColors; ++i) {
-    pinMode(potPins[i], INPUT);
-    pinMode(ledPins[i], OUTPUT);
-  }
-
-   Serial.begin(9600);
-}
 
 float *getPotValues() {
   float *potValues = (float *) malloc(numberOfColors * sizeof(float));
@@ -45,6 +37,15 @@ void writePotValuesToLedPins(float *potValues) {
     
     analogWrite(ledPins[i], brightness);
   }
+}
+
+void setup() {
+  for (unsigned int i = 0; i < numberOfColors; ++i) {
+    pinMode(potPins[i], INPUT);
+    pinMode(ledPins[i], OUTPUT);
+  }
+
+   Serial.begin(9600);
 }
 
 void loop() {
