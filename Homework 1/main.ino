@@ -6,6 +6,10 @@ const int potPins[numberOfColors] = { A0, A1, A2 };
 
 const int ledPins[numberOfColors] = { 3, 5, 6 };
 
+const int maxAnalogWriteValue = 255;
+
+const int maxAnalogReadValue = 1023;
+
 void setup() {
   for (unsigned int i = 0; i < numberOfColors; ++i) {
     pinMode(potPins[i], INPUT);
@@ -36,7 +40,7 @@ void printPotValues(float *potValues) {
 
 void writePotValuesToLedPins(float *potValues) {
   for (unsigned int i = 0; i < numberOfColors; ++i) {
-    float brightness = map(potValues[i], 0, 1023, 0, 255);
+    float brightness = map(potValues[i], 0, maxAnalogReadValue, 0, maxAnalogWriteValue);
     
     analogWrite(ledPins[i], brightness);
   }
