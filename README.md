@@ -98,7 +98,7 @@ float *getPotValues() {
 ```
 
 
-5. (Optional) Creating a function for debugging purposes that, given the values of the potentiometers, it prints them:
+5. (Optional) Creating a function for debugging purposes, that, given the values of the potentiometers, it prints them:
 
 ```C++
 void printPotValues(float *potValues) {
