@@ -52,6 +52,7 @@ void loop() {
   float *potValues = getPotValues();
 
   printPotValues(potValues);
+
   writePotValuesToLedPins(potValues);
 
   free(potValues);
