@@ -4,8 +4,8 @@ const int potPins[numberOfColors] = { A0, A1, A2 };
 
 const int ledPins[numberOfColors] = { 3, 5, 6 };
 
-const int numberOfColors = 3;
 
+const int numberOfColors = 3;
 
 const int maxAnalogWriteValue = 255;
 
