@@ -1,5 +1,5 @@
 // Convention: the arrays are meant to store { R, G, B }-related values (i.e. potPins[0] = the pin of the potentiometer associated with the red light)
-
+  
 const int numberOfColors = 3;
 
 const int potPins[numberOfColors] = { A0, A1, A2 };
@@ -36,7 +36,9 @@ void printPotValues(float *potValues) {
 
 void writePotValuesToLedPins(float *potValues) {
   for (unsigned int i = 0; i < numberOfColors; ++i) {
-    analogWrite(ledPins[i], potValues[i] / 4.0);
+    float brightness = map(potValues[i], 0, 1023, 0, 255);
+    
+    analogWrite(ledPins[i], brightness);
   }
 }
 
