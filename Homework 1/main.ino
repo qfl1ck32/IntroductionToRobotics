@@ -1,15 +1,15 @@
 // Convention: the arrays are meant to store { R, G, B }-related values (i.e. potPins[0] = the pin of the potentiometer associated with the red light)
 
-const int potPins[numberOfColors] = { A0, A1, A2 };
-
-const int ledPins[numberOfColors] = { 3, 5, 6 };
-
-
 const int numberOfColors = 3;
 
 const int maxAnalogWriteValue = 255;
 
 const int maxAnalogReadValue = 1023;
+
+
+const int potPins[numberOfColors] = { A0, A1, A2 };
+
+const int ledPins[numberOfColors] = { 3, 5, 6 };
 
 
 void setup() {
