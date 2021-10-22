@@ -112,7 +112,7 @@ void printPotValues(float *potValues) {
 ```
 
 
-6. Writing the main loop, where we read values, print them, write them and we clear up the memory:
+6. Writing the main loop, where we read the values from the potentiometer, print them (for testing), write them to the pins and clear up the allocated memory:
 
 ```C++
 void loop() {
