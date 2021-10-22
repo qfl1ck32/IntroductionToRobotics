@@ -58,7 +58,7 @@ const int ledPins[numberOfColors] = { 3, 5, 6 };
 ```
 
 
-2. Declaring the constants that we'll be using througought the algorithm:
+2. Declaring the constants that we'll be using throughout the algorithm:
 
 ```C++
 const int numberOfColors = 3;
