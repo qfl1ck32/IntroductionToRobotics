@@ -156,7 +156,7 @@ int upper_bound(const int *arr, int arrayLength, int value) {
   return low;
 }
 
-bool handleAntennaSampleGathering() {
+void handleAntennaSampleGathering() {
   if (currentAntennaSampleCount >= antennaSamplesCount) {
     currentAntennaSampleCount = 0;
   }
