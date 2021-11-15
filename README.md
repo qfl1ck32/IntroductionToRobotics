@@ -932,31 +932,51 @@ These are used so we know the index where the data is stored (or where the data 
 
 We have 4 basic functions for this:
 
-       1. `areDisplayDigitsStoredInEEPROM()`, which returns `true` if the EEPROM has a value of `1` at the defined index;
-       2. `storeInitialDisplayDigitsInEEPROM()`, which writes the `displayDigits` array to the EEPROM (in consecutive positions);
-       3. `restoreDisplayDigitsFromEEPROM()`, which does exactly what it says - it reads the value from EEPROM and stores them into `displayDigits`;
-       4. `updateDisplayDigitInEEPROM(index, digit)`, which will update the value in EEPROM for a given index (the `segment`) with the given `digit`.
+       1. areDisplayDigitsStoredInEEPROM() - which returns `true` if the EEPROM has a value of `1` at the defined index;
+       
+       2. storeInitialDisplayDigitsInEEPROM() - which writes the `displayDigits` array to the EEPROM (in consecutive positions);
+       
+       3. restoreDisplayDigitsFromEEPROM() - which does exactly what it says - it reads the value from EEPROM and stores them into `displayDigits`;
+       
+       4. updateDisplayDigitInEEPROM(index, digit)` - which will update the value in EEPROM for a given index (the `segment`) with the given `digit`.
        
 2. For handling the joystick, we have the following:
        
-       1. `handleSw()`, which is used in `interrupt(...)`, for selecting a segment to change its digit;
-       2. `handleJoystickMovementOnAxisX` and `handleJoystickMovementOnAxisY`, which handle the corresponding edge cases (i.e. when a segment is selected,
+       1. handleSw() - which is used in `interrupt(...)`, for selecting a segment to change its digit;
+       
+       2. handleJoystickMovementOnAxisX and handleJoystickMovementOnAxisY - which handle the corresponding edge cases (i.e. when a segment is selected,
        y-axis movements should do nothing, and when a segment isn't selected, it ignores x-axis movements) and update the `currentSegment` and
        the value of that segment, respectively. When updating the value of a segment, it also updates the value in `EEPROM`.
-       3. `handleJoystick()`, which is a simple wrapper over the previous two functions;
-       4. `handleDisplayDecimalPoint()`, which, if `displayDecimalPointDelayBetweenBlinks`ms have passed, it changes the state of the decimal point and resets
+       
+       3. handleJoystick() - which is a simple wrapper over the previous two functions;
+       
+       4. handleDisplayDecimalPoint() - which, if `displayDecimalPointDelayBetweenBlinks`ms have passed, it changes the state of the decimal point and resets
        the value for `lastBlink`.
 
 3. For showing a number, using multiplexing, we've used 3 functions:
+
+       1. showOnlyNthSegment(n) - which turns off all segments but the n-th;
        
-       1. `showOnlyNthSegment(n)`, which turns off all segments but the n-th;
-       2. `writeRegister(digit)`, which writes, using `shiftOut`, a digit (using `most significant bit first` for the bit order);
-       3. `showNumber(int *number)` - this function takes an array of 4 digits as argument, and displays, on each 7-segment display, rapidly,
+       2. writeRegister(digit) - which writes, using `shiftOut`, a digit (using `most significant bit first` for the bit order);
+       
+       3. showNumber(int *number) - this function takes an array of 4 digits as argument, and displays, on each 7-segment display, rapidly,
        every digit, from left to right.
        
 4. In `setup()`, except for `pinMode(...)` calls and turning off all `segmentDigits`, we're also attaching an `interrupt` on the `SW` pin, with `handleSw`,
 with mode = `RISING`. Also, we need to restore data saved in EEPROM. So - if there's data stored already, we restore it, otherwise, we store the initial `displayDigits`
 (which are by default `{ 0, 0, 0, 0 }`).
+
+5. In the main `loop()`, we have the following logic:
+
+       1. Create an array for the digits that we'll show - call it digits[];
+       
+       2. Call handleJoystick();
+       
+       3. If there's no segment selected, call handleDisplayDecimalPoint()
+       
+       4. Iterate through every digit in the global displayDigits array, get the corresponding bits from digitArray and,
+       if there is no segment selected (i.e. we are in state 1), we do a logical or with displayDecimalPointState
+       (to add, or not, the decimal point, to the current segment).
 
 
 1. Bird-eye view: ![IMG_20211115_173226](https://user-images.githubusercontent.com/56713436/141816038-dd9c97fe-3149-45f1-a29b-f2b4b28911fa.jpg)
