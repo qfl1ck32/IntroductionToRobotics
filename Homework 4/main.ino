@@ -269,8 +269,7 @@ void loop() {
   for (int i = 0; i < segmentsCount; ++i) {
     digits[i] = digitArray[displayDigits[i]];
 
-    if (!isSegmentSelected && i == currentSegment){
-
+    if (!isSegmentSelected && i == currentSegment) {
       digits[i] |= displayDecimalPointState;
     }
   }
