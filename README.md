@@ -544,3 +544,426 @@ Here are a few pictures of the application running, in each state (except for st
 Here you can find a demo: https://www.youtube.com/watch?v=pSUoL5yYvAs
 
 Enjoy! 🙂
+
+--
+
+## Homework #3
+
+##### 1) Description
+
+###### We need to create an EMF detector.
+
+
+##### 2) Requirements
+
+       1. 1x Arduino Uno
+       2. 1x Green LED
+       3. 1x Red Led
+       4. 3x 220Ω resistor
+       5. 1x 100Ω resistor
+       6. 1x 1.000.000Ω resistor
+       7. 1x 7 Segment Display
+       8. 14x Jumper Wires
+       9. 1x Push Button
+       10. 1x Passive Buzzer
+       11. 2x Paperclips (optional, for the antenna)
+
+##### 3) Implementation details (with code & images)
+
+The actual code can be found [here](https://github.com/qfl1ck32/IntroductionToRobotics/blob/master/Homework%203/main.ino).
+
+Little explanation for each step:
+
+1. Create constants for the pins we'll be using:
+
+```C++
+const int buzzerPin = 2;
+const int buttonPin = 3;
+
+const int antennaPin = A0;
+
+const int redLedPin = A4;
+const int greenLedPin = A5;
+
+
+const int pinA = 4;
+const int pinB = 5;
+const int pinC = 6;
+const int pinD = 7;
+const int pinE = 8;
+const int pinF = 9;
+const int pinG = 10;
+```
+
+2. Define constant for app state:
+
+```C++
+bool isAppRunning = true;
+```
+
+3. Define buzzer-related constants:
+
+```C++
+unsigned long buzzerStartTime;
+unsigned long buzzerEndTime;
+unsigned long isBuzzerRunning;
+
+const int buzzerPauseDurationBetweenBeepsBaseValue = 800;
+const int buzzerPauseDurationBetweenBeepsReducingFactor = 2;
+
+const int buzzerFrequency = 1000;
+```
+
+4. Define constants for debouncing the button push:
+
+```C++
+const int buttonDebounceDelay = 50;
+unsigned long lastDebounceTime = 0;
+
+```
+
+5. Define constants & variables related to the antenna:
+
+```C++
+const int antennaValuesThresholdsCount = 10;
+const int antennaValuesThresholds[] = { 50, 150, 250, 350, 450, 550, 650, 750, 850, 950 };
+
+const int antennaMinConstraintValue = 1;
+const int antennaMaxConstraintValue = 1023;
+
+const int antennaMinMapValue = 9;
+const int antennaMaxMapValue = 14;
+
+const int antennaSamplesCount = 256;
+
+int antennaSamples[antennaSamplesCount];
+int antennaSamplesTotal;
+
+int currentAntennaSampleCount;
+```
+
+The `antennaValuesThresholds` will be used with a `upper_bound` method, in order to get a value from `0-9` which will represent the intensity of the antenna values.
+
+6. Define variables for the seven segment display:
+
+```C++
+const int segmentSize = 7;
+const int sevenSegmentDisplayPins[segmentSize] = { pinA, pinB, pinC, pinD, pinE, pinF, pinG };
+
+const int sevenSegmentDisplayNumbers[][segmentSize] = {
+  { 1, 1, 1, 1, 1, 1, 0 },
+  { 0, 1, 1, 0, 0, 0, 0 },
+  { 1, 1, 0, 1, 1, 0, 1 },
+  { 1, 1, 1, 1, 0, 0, 1 },
+  { 0, 1, 1, 0, 0, 1, 1 },
+  { 1, 0, 1, 1, 0, 1, 1 },
+  { 1, 0, 1, 1, 1, 1, 1 },
+  { 1, 1, 1, 0, 0, 0, 0 },
+  { 1, 1, 1, 1, 1, 1, 1 },
+  { 1, 1, 1, 1, 0, 1, 1 }
+};
+```
+
+7. Create functions for displaying a digit and clearing the display:
+
+```C++
+const int displayDigit(int digit) {
+  const int *values = sevenSegmentDisplayNumbers[digit];
+
+  for (short int i = 0; i < segmentSize; ++i) {
+    digitalWrite(sevenSegmentDisplayPins[i], values[i]);
+  }
+}
+
+const int clearDisplay() {
+  for (short int i = 0; i < segmentSize; ++i) {
+    digitalWrite(sevenSegmentDisplayPins[i], LOW);
+  }
+}
+```
+
+8. Create a method that `debounces` a function, using a given `delay`:
+
+
+```C++
+void debounceButtonPush(void (*function)(), unsigned long delayMs) {
+  static int currentButtonState = HIGH;
+  static int previousButtonState = HIGH;
+
+  int buttonState = digitalRead(buttonPin);
+
+  if (buttonState != previousButtonState) {
+    lastDebounceTime = millis();
+  }
+
+  previousButtonState = buttonState;
+
+  if (millis() - lastDebounceTime < delayMs) return;
+  
+  if (buttonState != currentButtonState) {
+    currentButtonState = buttonState;
+
+    if (buttonState == HIGH) {
+      function();
+    }
+  }
+}
+```
+
+9. Define a utility function that, given the `start time` and `duration` of an action, checks if the given amount of time has passed:
+
+```C++
+boolean hasTimePassed(unsigned long startTime, unsigned long duration) {
+  return millis() - startTime >= duration;
+}
+```
+
+10. Create methods for handling the buzzer:
+
+```C++
+void buzz(unsigned long freq) {
+  if (!isBuzzerRunning && buzzerStartTime == 0) {
+    tone(buzzerPin, freq); 
+
+    buzzerStartTime = millis();
+    isBuzzerRunning = true;
+  }
+}
+
+void handleBuzzStop(unsigned long ms) {
+  if (buzzerStartTime && hasTimePassed(buzzerStartTime, ms)) {
+    noTone(buzzerPin);
+    isBuzzerRunning = false;
+    buzzerEndTime = millis();
+    buzzerStartTime = 0;
+  }
+}
+```
+
+11. Create a function to handle switching the app state (will be used with the button debounce):
+
+```C++
+void switchAppRunningState() {
+  if (isAppRunning) {
+    digitalWrite(greenLedPin, LOW);
+    digitalWrite(redLedPin, HIGH);
+
+    noTone(buzzerPin);
+
+    clearDisplay();
+  }
+  
+  else {
+    digitalWrite(greenLedPin, HIGH);
+    digitalWrite(redLedPin, LOW);
+  }
+  
+  isAppRunning = !isAppRunning;
+}
+```
+
+12. Create an "upper_bound" method (will be used to identify the intensity of the antenna values):
+
+```C++
+int upper_bound(const int *arr, int arrayLength, int value) {
+  int mid, low = 0, high = arrayLength - 1;
+
+  while (low < high) {
+    mid = low + (high - low) / 2;
+
+    if (value > arr[mid]) {
+      low = mid + 1;
+    }
+
+    else {
+      high = mid;
+    }
+  }
+
+  return low;
+}
+```
+
+13. Define a function that reads values from the antenna and stores them.
+
+```C++
+void handleAntennaSampleGathering() {
+  if (currentAntennaSampleCount >= antennaSamplesCount) {
+    currentAntennaSampleCount = 0;
+  }
+
+  float antennaValue = analogRead(antennaPin);
+
+  antennaSamplesTotal = max(antennaSamplesTotal - antennaSamples[currentAntennaSampleCount], 0);
+  
+  antennaSamples[currentAntennaSampleCount] = antennaValue;
+  
+  antennaSamplesTotal += antennaValue;
+  
+  ++currentAntennaSampleCount;
+}
+```
+
+Idea: In the beginning, we will fill `antennaSamples` with... well, antenna samples; and in the main loop,
+we'll be calling this function, which will update `antennaSamplesTotal` and `antennaSamples[]`,
+always keeping the array full and updating `antennaSamplesTotal`, to match the sum of `antennaSamples`.
+
+14. Create one of the main functions, which gathers data from the antenna and handles the buzzer & the seven segment display.
+
+```C++
+void handleAntenna() {
+  handleAntennaSampleGathering();
+
+  int averageFromAntennaSamples = antennaSamplesTotal / antennaSamplesCount;
+
+  int constrainedAntennaValue = constrain(averageFromAntennaSamples, antennaMinMapValue, antennaMaxMapValue);
+
+  int mappedAntennaValue = map(constrainedAntennaValue, antennaMinMapValue, antennaMaxMapValue, antennaMinConstraintValue, antennaMaxConstraintValue);
+  
+  int antennaThresholdIndex = upper_bound(antennaValuesThresholds, antennaValuesThresholdsCount, mappedAntennaValue);
+
+  int buzzerPauseBetweenBeepsDuration = antennaThresholdIndex == 0 ? 0 : buzzerPauseDurationBetweenBeepsBaseValue / (buzzerPauseDurationBetweenBeepsReducingFactor * antennaThresholdIndex);
+
+  handleBuzzStop(buzzerPauseBetweenBeepsDuration);
+
+  displayDigit(antennaThresholdIndex);
+
+  if (buzzerPauseBetweenBeepsDuration && hasTimePassed(buzzerEndTime, buzzerPauseBetweenBeepsDuration)) {
+    buzz(buzzerFrequency); 
+  }
+}
+```
+
+
+15. For `setup()`, we define the `pinModes` and initialise the `antennaSamples` array: 
+
+```C++
+pinMode(buttonPin, INPUT_PULLUP);
+  pinMode(antennaPin, INPUT);
+
+  pinMode(greenLedPin, OUTPUT);
+  pinMode(redLedPin, OUTPUT);
+
+  for (int i = 0; i < segmentSize; ++i) {
+    pinMode(sevenSegmentDisplayPins[i], OUTPUT);
+  }
+
+  for (int i = 0; i < antennaSamplesCount; ++i) {
+    float antennaValue = analogRead(antennaPin);
+  
+    antennaSamples[i] = antennaValue;
+    antennaSamplesTotal += antennaValue;
+  }
+  
+  Serial.begin(9600);
+
+  switchAppRunningState();
+```
+
+16. Define `loop()`, which debounces the button push with `switchAppRunningState` (so you can start / stop the app at any time, using the button) and runs `handleAntenna`,
+if the application is running:
+
+```C++
+void loop() {
+  debounceButtonPush(switchAppRunningState, buttonDebounceDelay);
+
+  if (isAppRunning) {
+    handleAntenna();
+  }
+} 
+```
+
+Here are a few pictures of the application :D
+
+1. Turned off ![IMG_20211110_224052](https://user-images.githubusercontent.com/56713436/141194367-131a30cb-e2f1-42c3-a3e9-4824dc29501f.jpg)
+2. Turned on ![IMG_20211110_224150](https://user-images.githubusercontent.com/56713436/141194407-bf0aaaea-b0ef-42eb-bac7-fabba6a22d06.jpg)
+3. Bird-eye view ![IMG_20211110_224119](https://user-images.githubusercontent.com/56713436/141194446-503d0ef1-34e3-450b-ac5c-e4cfb6793318.jpg)
+
+Here you can find a demo: https://youtu.be/TZ1IxyYX37Y
+
+Sorry for the sad quality of the photos & video. Too late at night to have good light. Will probably update some time soon.
+
+Enjoy 😸
+
+--
+
+## Homework #4
+
+##### 1) Description
+
+###### We need to control the digits of a seven segment display using joystick movements (and its integrated button).
+
+In the first state, the decimal point of the current segment we are on (initially, the first one), will blink at a constant interval.
+At this point, only movements on the Y axis are allowed.
+
+
+Pushing the button of the joystick will select the segment, hence, the second state - the movements on the Y axis are disabled, and moving joystick
+on the X axis will swap to the next/previous digit. Pushing again will make the app go back to the first state.
+
+Note: Holding the joystick in one direction shouldn't lead to an infinite loop throughout segments / digits. Only the first change will count.
+
+Another note: We will also store the digits that are being displayed in the EEPROM, and restoring them when starting the app.
+
+
+##### 2) Requirements
+
+       1. 1x Arduino Uno
+       2. 1x 74HC595 Shift Register
+       3. 1x Joystick
+       4. 2x 220Ω Resistor
+       5. 21x Jump Wire
+       
+
+##### 3) Implementation details (with code & images)
+
+The actual code can be found [here](https://github.com/qfl1ck32/IntroductionToRobotics/blob/master/Homework%204/main.ino).
+
+Little explanation, behind the idea. Will try to keep things simpler :D
+
+
+1. We defined a few constants & functions for handling the EEPROM.
+
+```
+#define EEPROM_IS_DATA_STORED_INDEX 0
+#define EEPROM_DISPLAY_DIGITS_START_INDEX 1
+```
+
+These are used so we know the index where the data is stored (or where the data starts at, in the case of _the number that we'll display_).
+
+We have 4 basic functions for this:
+
+       1. `areDisplayDigitsStoredInEEPROM()`, which returns `true` if the EEPROM has a value of `1` at the defined index;
+       2. `storeInitialDisplayDigitsInEEPROM()`, which writes the `displayDigits` array to the EEPROM (in consecutive positions);
+       3. `restoreDisplayDigitsFromEEPROM()`, which does exactly what it says - it reads the value from EEPROM and stores them into `displayDigits`;
+       4. `updateDisplayDigitInEEPROM(index, digit)`, which will update the value in EEPROM for a given index (the `segment`) with the given `digit`.
+       
+2. For handling the joystick, we have the following:
+       
+       1. `handleSw()`, which is used in `interrupt(...)`, for selecting a segment to change its digit;
+       2. `handleJoystickMovementOnAxisX` and `handleJoystickMovementOnAxisY`, which handle the corresponding edge cases (i.e. when a segment is selected,
+       y-axis movements should do nothing, and when a segment isn't selected, it ignores x-axis movements) and update the `currentSegment` and
+       the value of that segment, respectively. When updating the value of a segment, it also updates the value in `EEPROM`.
+       3. `handleJoystick()`, which is a simple wrapper over the previous two functions;
+       4. `handleDisplayDecimalPoint()`, which, if `displayDecimalPointDelayBetweenBlinks`ms have passed, it changes the state of the decimal point and resets
+       the value for `lastBlink`.
+
+3. For showing a number, using multiplexing, we've used 3 functions:
+       
+       1. `showOnlyNthSegment(n)`, which turns off all segments but the n-th;
+       2. `writeRegister(digit)`, which writes, using `shiftOut`, a digit (using `most significant bit first` for the bit order);
+       3. `showNumber(int *number)` - this function takes an array of 4 digits as argument, and displays, on each 7-segment display, rapidly,
+       every digit, from left to right.
+       
+4. In `setup()`, except for `pinMode(...)` calls and turning off all `segmentDigits`, we're also attaching an `interrupt` on the `SW` pin, with `handleSw`,
+with mode = `RISING`. Also, we need to restore data saved in EEPROM. So - if there's data stored already, we restore it, otherwise, we store the initial `displayDigits`
+(which are by default `{ 0, 0, 0, 0 }`).
+
+
+1. Bird-eye view: ![IMG_20211115_173226](https://user-images.githubusercontent.com/56713436/141816038-dd9c97fe-3149-45f1-a29b-f2b4b28911fa.jpg)
+2. Stylish image 😆 : ![IMG_20211115_173105](https://user-images.githubusercontent.com/56713436/141815119-b7c9100b-60b8-4d18-96b3-4247548c25f7.jpg) 
+
+Here you can find a demo: https://youtu.be/96cb6XyhVAA
+
+Sorry again for the bad lighting. I always get to work @RoboticsHomeWorks at night.
+
+Enjoy 😸
